@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Dance Aleluia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        lilas: '#8b5cf6',
+                        lilasDark: '#7c3aed',
+                        lilasLight: '#f5f3ff',
+                        rosa: '#ec4899',
+                        rosaHover: '#db2777',
+                        rosaLight: '#fdf2f8'
+                    },
+                    fontFamily: {
+                        sans: ['Urbanist', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: linear-gradient(135deg, #f3e8ff 0%, #fdf2f8 50%, #ede9fe 100%); font-family: 'Urbanist', sans-serif; color: #1e293b; min-height: 100vh; }
+        .panel-box { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(216, 180, 254, 0.4); box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.08); }
+        .tab-btn { background: #ffffff; border: 1px solid #e9d5ff; color: #6b7280; transition: all 0.2s; }
+        .tab-btn.active { background: linear-gradient(to right, #8b5cf6, #ec4899); border-color: transparent; color: #ffffff; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); }
+        .table-row { border-bottom: 1px solid #f3e8ff; transition: background 0.15s; }
+        .table-row:hover { background: #faf5ff; cursor: pointer; }
+        .badge { padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; }
+        .badge-confirmado { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .badge-pendente { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+        .badge-cancelado { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4">
+        <div class="bg-white/95 backdrop-blur-xl w-full max-w-sm p-8 rounded-3xl mx-4 text-center border border-purple-100 shadow-2xl">
+            <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-white overflow-hidden flex items-center justify-center border-2 border-purple-100 shadow-md">
+                <img src="logo-dance.png" alt="Logo Dance Aleluia" class="w-full h-full object-cover rounded-full">
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-1">Painel Administrativo</h2>
+            <p class="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-6">Dance Aleluia</p>
+            
+            <form onsubmit="fazerLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Senha de Acesso</label>
+                    <input type="password" id="senha-input" required placeholder="••••••••" class="w-full px-4 py-3.5 rounded-2xl border-2 border-purple-100 focus:outline-none focus:border-lilas focus:ring-4 focus:ring-purple-100 text-gray-800 text-sm transition">
+                </div>
+                <button type="submit" class="w-full py-4 rounded-2xl bg-gradient-to-r from-lilas to-rosa text-white font-bold text-base hover:opacity-95 transition shadow-lg shadow-purple-200">
+                    Entrar no Sistema
+                </button>
+                <div id="login-erro" class="text-rose-600 text-xs text-center font-semibold hidden">Senha incorreta (ADMI1234).</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PAINEL PRINCIPAL -->
+    <div id="main-panel" class="max-w-7xl mx-auto hidden space-y-6">
+        
+        <!-- Cabeçalho -->
+        <div class="panel-box rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-white overflow-hidden flex items-center justify-center border-2 border-purple-100 shadow-sm">
+                    <img src="logo-dance.png" alt="Logo" class="w-full h-full object-cover rounded-full">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-lilasDark to-rosa bg-clip-text text-transparent">Controle de Matrículas</h1>
+                    <p class="text-xs text-gray-500 font-semibold">Gerenciamento inteligente de solicitações e turmas</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="carregarDados()" class="px-4 py-3 rounded-2xl bg-white hover:bg-purple-50 text-gray-700 text-xs font-bold transition border border-purple-100 flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-arrows-rotate text-lilas"></i> Atualizar
+                </button>
+                <button onclick="sairLogin()" class="px-4 py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition border border-rose-100 flex items-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+                </button>
+            </div>
+        </div>
+
+        <!-- Abas -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button onclick="mudarAba('geral')" id="btn-geral" class="tab-btn active py-3.5 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-users"></i> Visão Geral
+            </button>
+            <button onclick="mudarAba('turmas')" id="btn-turmas" class="tab-btn py-3.5 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-chalkboard-user"></i> Por Turma
+            </button>
+            <button onclick="mudarAba('rematriculas')" id="btn-rematriculas" class="tab-btn py-3.5 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-arrows-rotate"></i> Rematrículas
+            </button>
+            <button onclick="mudarAba('novas')" id="btn-novas" class="tab-btn py-3.5 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-user-plus"></i> Novas Matrículas
+            </button>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="panel-box rounded-3xl p-4 flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" id="filtro-busca" oninput="renderizarTabela()" placeholder="Buscar por aluna ou responsável..." class="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-purple-100 focus:outline-none focus:border-lilas text-sm bg-white font-medium text-gray-800">
+            </div>
+            <div id="filtro-turma-container" class="hidden sm:w-72">
+                <select id="filtro-turma" onchange="renderizarTabela()" class="w-full px-4 py-3.5 rounded-2xl border-2 border-purple-100 focus:outline-none focus:border-lilas text-sm bg-white font-medium text-gray-800">
+                    <option value="">Todas as Turmas / Modalidades</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="panel-box rounded-3xl overflow-hidden shadow-lg">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr id="tabela-cabecalho" class="bg-purple-50/60 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-purple-100">
+                            <!-- Cabeçalho dinâmico -->
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-corpo" class="text-sm font-semibold text-gray-700 bg-white/60"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FICHA COMPLETA -->
+    <div id="modal-ficha" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-purple-100 space-y-6 relative">
+            <div class="flex justify-between items-center border-b border-purple-100 pb-4">
+                <div>
+                    <h3 class="text-xl font-bold bg-gradient-to-r from-lilasDark to-rosa bg-clip-text text-transparent">Ficha Cadastral da Aluna</h3>
+                    <p class="text-xs text-gray-400 font-medium">Detalhes completos da solicitação</p>
+                </div>
+                <button onclick="fecharModalFicha()" class="w-9 h-9 rounded-full bg-purple-50 hover:bg-purple-100 text-gray-600 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="modal-conteudo" class="space-y-3 text-sm text-gray-600">
+                <!-- Preenchido dinamicamente -->
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="fecharModalFicha()" class="px-6 py-3 rounded-2xl bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs transition shadow-md">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const SUPABASE_URL = 'https://lnuhvtptctbvddxgltvd.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_bKYN3aRSABe_fDeNpjrKxw_ePjSGolj';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let dadosRematriculas = [];
+        let dadosNovas = [];
+        let abaAtual = 'geral';
+
+        window.fazerLogin = function(e) {
+            e.preventDefault();
+            const senha = document.getElementById('senha-input').value;
+            if (senha === 'ADMI1234') {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-panel').classList.remove('hidden');
+                carregarDados();
+            } else {
+                document.getElementById('login-erro').classList.remove('hidden');
+            }
+        }
+
+        window.sairLogin = function() {
+            document.getElementById('senha-input').value = '';
+            document.getElementById('main-panel').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+        }
+
+        window.mudarAba = function(aba) {
+            abaAtual = aba;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${aba}`).classList.add('active');
+            document.getElementById('filtro-turma-container').classList.toggle('hidden', aba !== 'turmas');
+            renderizarTabela();
+        }
+
+        window.carregarDados = async function() {
+            try {
+                // Busca apenas quem clicou no portal (status Pendente ou Confirmado)
+                const { data: alunos } = await supabaseClient.from('alunos').select('*').in('status', ['Pendente', 'Confirmado']);
+                const { data: novas } = await supabaseClient.from('novas_matriculas').select('*');
+
+                dadosRematriculas = (alunos || []).map(item => ({
+                    id: item.id,
+                    tipo: 'Rematrícula',
+                    nome: item.nome || 'Não informado',
+                    turmaOuModalidade: item.turma || 'Não atribuída',
+                    respNome: item.resp_nome || 'Não informado',
+                    respTel: item.resp_tel || item.numero || 'Não informado',
+                    status: item.status || 'Pendente',
+                    tabela: 'alunos',
+                    dadosBrutos: item
+                }));
+
+                dadosNovas = (novas || []).map(item => ({
+                    id: item.id,
+                    tipo: 'Nova Matrícula',
+                    nome: item.nome || 'Não informado',
+                    turmaOuModalidade: item.modalidades || 'Não informada',
+                    respNome: item.resp_nome || 'Não informado',
+                    respTel: item.resp_tel || 'Não informado',
+                    status: item.status || 'Pendente',
+                    tabela: 'novas_matriculas',
+                    dadosBrutos: item
+                }));
+
+                popularFiltroTurmas();
+                renderizarTabela();
+            } catch (err) {
+                console.error("Erro ao carregar dados:", err);
+            }
+        }
+
+        function popularFiltroTurmas() {
+            const select = document.getElementById('filtro-turma');
+            const todasTurmas = [...new Set([...dadosRematriculas, ...dadosNovas].map(i => i.turmaOuModalidade))];
+            select.innerHTML = '<option value="">Todas as Turmas / Modalidades</option>' + todasTurmas.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
+
+        window.renderizarTabela = function() {
+            const thead = document.getElementById('tabela-cabecalho');
+            const tbody = document.getElementById('tabela-corpo');
+            const busca = document.getElementById('filtro-busca').value.toLowerCase();
+            const turmaFiltro = document.getElementById('filtro-turma').value;
+
+            // ABA TURMAS: Agrupamento com quantitativo e nomes
+            if (abaAtual === 'turmas') {
+                thead.innerHTML = `
+                    <th class="p-4">Turma / Modalidade</th>
+                    <th class="p-4 text-center">Alunas Confirmadas</th>
+                    <th class="p-4">Relação de Alunas</th>
+                `;
+
+                const confirmadas = [...dadosRematriculas, ...dadosNovas].filter(i => i.status === 'Confirmado');
+                const turmasMap = {};
+
+                confirmadas.forEach(item => {
+                    if (!turmasMap[item.turmaOuModalidade]) turmasMap[item.turmaOuModalidade] = [];
+                    turmasMap[item.turmaOuModalidade].push(item.nome);
+                });
+
+                const turmasFiltradas = Object.keys(turmasMap).filter(t => !turmaFiltro || t === turmaFiltro);
+
+                if (turmasFiltradas.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-gray-400">Nenhuma aluna confirmada em turmas no momento.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = turmasFiltradas.map(turma => {
+                    const alunas = turmasMap[turma];
+                    return `
+                        <tr class="table-row">
+                            <td class="p-4 font-bold text-gray-900">${turma}</td>
+                            <td class="p-4 text-center"><span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs shadow-sm">${alunas.length} aluna(s)</span></td>
+                            <td class="p-4 text-gray-600 text-xs font-medium">${alunas.join(', ')}</td>
+                        </tr>
+                    `;
+                }).join('');
+                return;
+            }
+
+            // DEMAIS ABAS
+            thead.innerHTML = `
+                <th class="p-4">Tipo</th>
+                <th class="p-4">Aluna</th>
+                <th class="p-4">Turma / Modalidade</th>
+                <th class="p-4">Responsável / WhatsApp</th>
+                <th class="p-4">Status</th>
+                <th class="p-4 text-center">Ações</th>
+            `;
+
+            let listaAlvo = [];
+            if (abaAtual === 'geral') listaAlvo = [...dadosRematriculas, ...dadosNovas];
+            else if (abaAtual === 'rematriculas') listaAlvo = dadosRematriculas;
+            else if (abaAtual === 'novas') listaAlvo = dadosNovas;
+
+            let filtrados = listaAlvo.filter(item => {
+                const matchBusca = item.nome.toLowerCase().includes(busca) || item.respNome.toLowerCase().includes(busca);
+                return matchBusca;
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">Nenhum registro encontrado nesta categoria.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map((item) => {
+                let badgeClass = 'badge-pendente';
+                if (item.status === 'Confirmado') badgeClass = 'badge-confirmado';
+                if (item.status === 'Cancelado' || item.status === 'Não Matriculado') badgeClass = 'badge-cancelado';
+
+                const telLimpo = String(item.respTel || "").replace(/\D/g, "");
+                const linkWhatsapp = telLimpo.length >= 10 ? `https://wa.me/55${telLimpo.startsWith('55') ? telLimpo.slice(2) : telLimpo}?text=${encodeURIComponent(`Olá, ${item.respNome}! Entramos em contato referente à ${item.tipo.toLowerCase()} da aluna ${item.nome} no Dance Aleluia.`)}` : `#`;
+
+                return `
+                    <tr class="table-row" onclick="abrirFichaUnificada('${item.tabela}', '${item.id}')">
+                        <td class="p-4 font-bold text-gray-600">${item.tipo}</td>
+                        <td class="p-4 font-bold text-gray-900">${item.nome}</td>
+                        <td class="p-4 text-gray-600">${item.turmaOuModalidade}</td>
+                        <td class="p-4">
+                            <div class="font-bold text-gray-800">${item.respNome}</div>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs text-gray-400 font-semibold">${item.respTel}</span>
+                                ${telLimpo.length >= 10 ? `
+                                    <a href="${linkWhatsapp}" target="_blank" title="Chamar no WhatsApp" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition shadow-sm" onclick="event.stopPropagation()">
+                                        <i class="fa-brands fa-whatsapp text-xs"></i>
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </td>
+                        <td class="p-4"><span class="badge ${badgeClass}">${item.status}</span></td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2" onclick="event.stopPropagation()">
+                                <button onclick="alterarStatus('${item.id}', '${item.tabela}', 'Confirmado')" title="Confirmar na Turma" class="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition font-bold text-xs flex items-center gap-1.5 border border-emerald-200 shadow-sm">
+                                    <i class="fa-solid fa-check"></i> Confirmar
+                                </button>
+                                <button onclick="alterarStatus('${item.id}', '${item.tabela}', 'Cancelado')" title="Retirar da Turma" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition font-bold text-xs flex items-center gap-1.5 border border-rose-200 shadow-sm">
+                                    <i class="fa-solid fa-xmark"></i> Remover
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.abrirFichaUnificada = function(tabela, id) {
+            const item = [...dadosRematriculas, ...dadosNovas].find(i => i.id === id && i.tabela === tabela);
+            if (!item) return;
+            const d = item.dadosBrutos;
+
+            let html = `
+                <div class="grid grid-cols-2 gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
+                    <div><span class="text-xs text-gray-400 block uppercase font-bold">Tipo</span> <strong class="text-gray-800">${item.tipo}</strong></div>
+                    <div><span class="text-xs text-gray-400 block uppercase font-bold">Status Atual</span> <strong class="text-rosa">${item.status}</strong></div>
+                </div>
+                <div class="space-y-2 pt-2">
+                    <p><strong>Aluna:</strong> ${item.nome}</p>
+                    <p><strong>Turma / Modalidade:</strong> ${item.turmaOuModalidade}</p>
+                    <p><strong>Responsável:</strong> ${item.respNome}</p>
+                    <p><strong>Telefone:</strong> ${item.respTel}</p>
+                    ${d.cpf ? `<p><strong>CPF:</strong> ${d.cpf}</p>` : ''}
+                    ${d.email ? `<p><strong>E-mail:</strong> ${d.email}</p>` : ''}
+                    ${d.nascimento ? `<p><strong>Nascimento:</strong> ${d.nascimento}</p>` : ''}
+                    ${d.endereco ? `<p><strong>Endereço:</strong> ${d.endereco}</p>` : ''}
+                    ${d.obs ? `<p><strong>Observações:</strong> ${d.obs}</p>` : ''}
+                </div>
+            `;
+            document.getElementById('modal-conteudo').innerHTML = html;
+            document.getElementById('modal-ficha').classList.remove('hidden');
+        }
+
+        window.fecharModalFicha = function() {
+            document.getElementById('modal-ficha').classList.add('hidden');
+        }
+
+        window.alterarStatus = async function(id, tabela, novoStatus) {
+            const { error } = await supabaseClient.from(tabela).update({ status: novoStatus }).eq('id', id);
+            if (error) {
+                alert("Erro ao atualizar status.");
+                console.error(error);
+                return;
+            }
+            carregarDados();
+        }
+    </script>
+</body>
+</html>
